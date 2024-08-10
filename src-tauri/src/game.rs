@@ -1,7 +1,8 @@
+use std::sync::{Arc, Mutex};
+
 use anyhow::Result;
 use tauri::{
-    async_runtime::spawn, AppHandle, Emitter, Listener, LogicalPosition, LogicalSize, Manager,
-    State, Webview, WebviewUrl, Window, WindowEvent,
+    async_runtime::spawn, Emitter, LogicalPosition, LogicalSize, Webview, WebviewUrl, WindowEvent,
 };
 use tauri_plugin_shell::{process::CommandEvent, ShellExt};
 
@@ -47,7 +48,22 @@ async fn start_helper(webview: Webview) {
         .sidecar("mahjong-helper")
         .unwrap()
         .set_raw_out(true);
-    let (mut rx, mut child) = cmd.spawn().unwrap();
+    let (mut rx, child) = cmd.spawn().unwrap();
+
+    let child = Arc::new(Mutex::new(Some(child)));
+    let child_clone = child.clone();
+
+    webview.window().on_window_event(move |e| match e {
+        WindowEvent::Destroyed => {
+            let mut child = child.lock().unwrap();
+            if let Some(child) = child.take() {
+                if let Err(e) = child.kill() {
+                    println!("Failed to kill child: {e}");
+                }
+            }
+        }
+        _ => {}
+    });
 
     while let Some(event) = rx.recv().await {
         match event {
@@ -58,8 +74,13 @@ async fn start_helper(webview: Webview) {
                     println!("Error emit msg: {e}");
                 };
                 if string.contains("请输入") {
-                    if let Err(e) = child.write(b"1\n") {
-                        println!("Fail to write to pty: {e}")
+                    let mut child = child_clone.lock().unwrap();
+                    if let Some(child) = &mut *child {
+                        if let Err(e) = child.write(b"1\n") {
+                            println!("Cannot input to pty: {e}");
+                        }
+                    } else {
+                        return;
                     }
                 };
             }
