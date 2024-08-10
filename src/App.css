@@ -114,3 +114,14 @@ button {
     background-color: #0f0f0f69;
   }
 }
+
+@font-face {
+  font-family: "Noto Sans SC";
+  src: local("Noto Sans SC"),
+    url("./fonts/Noto_Sans_SC/NotoSansSC-VariableFont_wght.ttf")
+      format("truetype");
+}
+
+.helper {
+  font-family: "Noto Sans SC";
+}

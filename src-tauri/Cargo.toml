@@ -2,7 +2,7 @@
 name = "majsoul-max-tauri"
 version = "0.0.0"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["Xerxes-2"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -15,8 +15,9 @@ crate-type = ["lib", "cdylib", "staticlib"]
 tauri-build = { version = "2.0.0-rc", features = [] }
 
 [dependencies]
-tauri = { version = "2.0.0-rc", features = [] }
+tauri = { version = "2.0.0-rc", features = ["unstable", "macos-private-api"] }
 tauri-plugin-shell = "2.0.0-rc"
+tauri-plugin-process = "2.0.0-rc"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
+anyhow = "1.0.86"
