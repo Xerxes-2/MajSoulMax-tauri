@@ -2360,7 +2360,7 @@ checksum = "c41e0c4fef86961ac6d6f8a82609f55f31b05e4fce149ac5710e439df7619ba4"
 [[package]]
 name = "majsoul_max_rs"
 version = "0.6.1"
-source = "git+https://github.com/Xerxes-2/MajSoulMax-rs.git#06313d24521457a6b7ebd86037fa0adb3870597a"
+source = "git+https://github.com/Xerxes-2/MajSoulMax-rs.git?tag=0.6.1#257fd2cc5adb87b51cdefc9b28872efbccdcc8b6"
 dependencies = [
  "anyhow",
  "aws-lc-rs",
