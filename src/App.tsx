@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen, UnlistenFn, Event } from "@tauri-apps/api/event";
+import { listen, Event } from "@tauri-apps/api/event";
 import ReactAnsi from "react-ansi";
 
 enum LogLevel {
