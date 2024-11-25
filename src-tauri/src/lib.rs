@@ -1,14 +1,9 @@
 use anyhow::Result;
+use log::{info, warn};
 use majsoul_max_rs::*;
 use std::sync::Arc;
 use tauri::{async_runtime::JoinHandle, path::BaseDirectory, Emitter, Listener, Manager};
 use tokio::sync::{Mutex, Notify};
-
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
 
 #[tauri::command]
 async fn start_proxy(handle: tauri::AppHandle) {
@@ -33,12 +28,15 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
-                .with_colors(tauri_plugin_log::fern::colors::ColoredLevelConfig::default())
                 .level(log::LevelFilter::Info)
+                .with_colors(tauri_plugin_log::fern::colors::ColoredLevelConfig::default())
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Webview,
+                ))
                 .build(),
         )
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![greet, stop_proxy, start_proxy])
+        .invoke_handler(tauri::generate_handler![stop_proxy, start_proxy])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

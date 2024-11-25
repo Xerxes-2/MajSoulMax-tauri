@@ -1,73 +1,163 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
+import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { listen, UnlistenFn, Event } from "@tauri-apps/api/event";
+import ReactAnsi from "react-ansi";
+
+enum LogLevel {
+  Trace = 1,
+  Debug,
+  Info,
+  Warn,
+  Error,
+}
+
+interface RecordPayload {
+  level: LogLevel;
+  message: string;
+}
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [logs, setLogs] = useState("");
+  const [filter, setFilter] = useState<
+    "All" | "INFO" | "WARN" | "ERROR" | "TRACE" | "DEBUG"
+  >("All");
+  const logEndRef = useRef<HTMLDivElement>(null);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
+  // Function to start the proxy
   async function startProxy() {
-    setGreetMsg(await invoke("start_proxy"));
+    try {
+      await invoke("start_proxy");
+    } catch (error) {
+      console.error("Failed to start proxy:", error);
+    }
   }
 
+  // Function to stop the proxy
   async function stopProxy() {
-    setGreetMsg(await invoke("stop_proxy"));
+    try {
+      await invoke("stop_proxy");
+    } catch (error) {
+      console.error("Failed to stop proxy:", error);
+    }
   }
+
+  // Function to add log messages to the state
+  const addLog = (log: string) => {
+    setLogs((prevLogs) => prevLogs + log + "\n");
+  };
+
+  // Set up event listener for 'log://log'
+  useEffect(() => {
+    const unlisten = listen("log://log", (event: Event<RecordPayload>) => {
+      const { message } = event.payload;
+      addLog(message);
+    });
+
+    return () => {
+      unlisten
+        .then((fn) => fn())
+        .catch((err) => console.error("Failed to unlisten:", err));
+    };
+  }, []);
+
+  // Auto-scroll to the latest log
+  useEffect(() => {
+    if (logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [logs]);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <main
+      className="container"
+      style={{
+        padding: "20px",
+        fontFamily: "Arial, sans-serif",
+        maxWidth: "800px",
+        margin: "0 auto",
+      }}
+    >
+      <h1>Proxy Controller</h1>
 
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className="button-group" style={{ marginBottom: "20px" }}>
+        <button
+          type="button"
+          onClick={startProxy}
+          style={{
+            padding: "10px 20px",
+            marginRight: "10px",
+            backgroundColor: "#4CAF50",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Start Proxy
+        </button>
+        <button
+          type="button"
+          onClick={stopProxy}
+          style={{
+            padding: "10px 20px",
+            backgroundColor: "#f44336",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Stop Proxy
+        </button>
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
+      <h2>Rust Logs</h2>
+
+      <div style={{ marginBottom: "10px" }}>
+        <label htmlFor="filter">Filter: </label>
+        <select
+          id="filter"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as any)}
+          style={{ padding: "5px", marginRight: "10px" }}
+        >
+          <option value="All">All</option>
+          <option value="TRACE">TRACE</option>
+          <option value="DEBUG">DEBUG</option>
+          <option value="INFO">INFO</option>
+          <option value="WARN">WARN</option>
+          <option value="ERROR">ERROR</option>
+        </select>
+        <button
+          type="button"
+          onClick={() => setLogs("")}
+          style={{
+            padding: "5px 10px",
+            backgroundColor: "#555",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+          }}
+        >
+          Clear Logs
+        </button>
+      </div>
+
+      <div
+        style={{
+          padding: "10px",
+          height: "300px",
+          overflowY: "scroll",
+          fontFamily: "monospace",
+          fontSize: "12px",
+          borderRadius: "5px",
+          marginTop: "10px",
         }}
       >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-      <button
-        type="button"
-        onClick={() => {
-          startProxy();
-        }}
-      >
-        Start
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          stopProxy();
-        }}
-      >
-        Stop
-      </button>
+        <ReactAnsi log={logs} />
+        <div ref={logEndRef} />
+      </div>
     </main>
   );
 }
